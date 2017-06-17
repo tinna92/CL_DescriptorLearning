@@ -1,0 +1,31 @@
+test the influence of threshold l_pull and l_push
+
+
+firstly, the following test could be done:
+1) How l_pull and l_push influence the performance of the learning descriptor?
+test the following cases:
+l_pull = 0, l_push = 10
+l_pull = 1, l_push = 10 (6.4% 0,10 for sort and 1,10 for mining)
+l_pull = 3, l_push = 10 8.6%
+l_pull = 5, l_push = 10 (shrinking rate 0.00001 alpha 0.003 get 6.41%)
+l_pull = 7, l_push = 10 6.83%
+
+
+(Train: Liberty 0,10 for sort  (1,10 with mining) ,mining to 125 (from 1000))
+test : Notreme 6.4%, Yosemite 10.9%) without saving theta,
+then test mining with 0 and 10.
+
+l_pull = 5, l_push = 10  (shrinking rate 0.00001 alpha 0.003 get 6.41% for noterme and 11.28% for Yosemite)
+ save('learnedParamaters0318_30_batchsize_1000_liberty_validation_lpull5_lpush10.mat','theta');
+ save('Save_v_t_r_t_Loss_alpha_0318_30_batchsize_1000__liberty_lpull5_lpush10.mat','r_t','v_t','Loss_Rec','alpha');
+
+l_pull = 7, l_push = 10 6.81% (shrinking rate 0.00001 alpha 0.003 get 6.81% for noterme and 11.3% for Yosemite)
+ save('learnedParamaters0318_30_batchsize_1000_liberty_validation_lpull5_lpush10.mat','theta');
+ save('Save_v_t_r_t_Loss_alpha_0318_30_batchsize_1000__liberty_lpull5_lpush10.mat','r_t','v_t','Loss_Rec','alpha'); 
+ 
+
+l_pull = 1, l_push = 10 with mining (take all the input to update gradients, not only the contributed number)
+train liberty test yosemite 12.67%
+train liberty test notredame 7.8%
+ 
+2) Test the influence of coefficients before C_s and C_ds, namely the relative ratio of similar and dissimilar cost.

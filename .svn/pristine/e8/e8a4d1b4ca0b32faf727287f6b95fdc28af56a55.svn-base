@@ -1,0 +1,23 @@
+% there is a big difference between SIFT descriptor and SiameseCNN. In
+% SIFT, the dominent direction is calculated and any other direction that
+% is over 80% of the most dominent direction will also be assigned as
+% dominant directions. In this case, there will be more than 1 dominent
+% directions for some feature and hence more than one descirptors for some
+% feature. However, in Siamese CNN, the dominant direction is not
+% considered in the training data, at least not seriously, so there is a
+% need to make some special ground truth matching data for SiameCNN
+% architecture since it has only one descriptor for each detector.
+
+% to get these ground truth, 1) get the homography matrix in the data;
+% 2)calculate the point correspondence of each feature in the first image
+% and get its corresponding feature index by comparision using eucalidean
+% distances. 3) build the ground truth matching data for each pair of
+% images. The comparison is only based on coordinate difference so far.
+
+Maindir = 'E:\software\IPI\Data\';
+Dataset_Name = 'graf';
+Homofile_Name = {'H1to2p','H1to3p','H1to4p','H1to5p','H1to6p'};
+
+for ii=1:5
+    
+end

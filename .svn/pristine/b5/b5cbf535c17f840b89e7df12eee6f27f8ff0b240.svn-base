@@ -1,0 +1,9 @@
+image_name = '000003-111406161250-04.tifresize.png';
+% image_name = 'box.png';
+% image_name = 'test.PNG';
+similarity_threshold = 1.0;
+feature_detector_type = 'DoG';
+n=4;a=sqrt(2);b=72;
+[repeat_score_2originimage1,repeat_score_tilt2rotate1] = Chen_imagerepeatability_inoneImage_analysis3(image_name,feature_detector_type,n,a,b,similarity_threshold);
+
+% see which of these features are matched

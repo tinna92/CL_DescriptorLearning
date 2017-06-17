@@ -1,0 +1,103 @@
+% image_name = '000003-111406161250-04.tifresize.png';
+% % image_name = 'box.png';
+% % image_name = 'test.PNG';
+similarity_threshold = 1.0;
+feature_detector_type = 'DoG';
+n=3;
+a=sqrt(2);
+b=72;
+% [repeat_score_2originimage1,repeat_score_tilt2rotate1] = Chen_imagerepeatability_inoneImage_analysis3(image_name,feature_detector_type,n,a,b,similarity_threshold);
+% 
+% [frames_Aff,descrs_Aff,feature_inwhichview] = Chen_ExtractedAffineimageFeatures_2(img_path,feature_detector_type,descriptor_type,n,a,b);
+img_name1 = 'E:\MultiPlatform Photogrammetry dataset\RELEASE_FOLDER_IMAGE_ORIENTATION\Photogrammetric_image_block\images\003_017_145000238.tifresize.png';
+img_name2 = 'E:\MultiPlatform Photogrammetry dataset\RELEASE_FOLDER_IMAGE_ORIENTATION\Photogrammetric_image_block\images\007_017_163000166.tifresize.png';
+[frames_Aff1,descrs_Aff1,feature_index1,frames_insimulatedimage_index1] = Chen_ExtractedAffineimageFeatures2(img_name1,'DoG','SIFT',3,sqrt(2),72);
+[frames_Aff2,descrs_Aff2,feature_index2,frames_insimulatedimage_index2] = Chen_ExtractedAffineimageFeatures2(img_name2,'DoG','SIFT',3,sqrt(2),72);
+
+match_ratio  =1.3;
+[matches_Desc, scores_Desc] = vl_ubcmatch(descrs_Aff1, descrs_Aff2,match_ratio);
+% randm_selected = randperm();
+Chen_show_matchresult(rgb2gray(imread(img_name1)),...
+    rgb2gray(imread(img_name2)),matches_Desc,frames_Aff1,frames_Aff2,0);
+
+clear F_matrix inlinear_index img_coord1 img_coord2 correct_Match_coord1 correct_Match_coord2;
+[F_matrix,inlinear_index] = Chen_estimateFundmentalmatrix_RANSAC(frames_Aff1,frames_Aff2,matches_Desc,2,30000);
+Initial_MatchNum = size(matches_Desc,2);
+img_coord1 = frames_Aff1(1:2,matches_Desc(1,:));
+img_coord2 = frames_Aff2(1:2,matches_Desc(2,:));
+correct_Match_coord1 = img_coord1(1:2,inlinear_index);
+correct_Match_coord2 = img_coord2(1:2,inlinear_index);
+draw_epipolar_lines(F_matrix,rgb2gray(imread(img_name1)),...
+    rgb2gray(imread(img_name2)),correct_Match_coord1',correct_Match_coord2');
+Chen_show_matchresult(uint8(img_name1),uint8(img_name2), matches_CNN_Desc(1:2,inlinear_index),frames_Aff1,frames_Aff2,0);
+
+
+[repeat_score_2originimage1,repeat_score_tilt2rotate1,index_origin_image1,index_aff_image1] = Chen_imagerepeatability_inoneImage_analysis3(img_name1,feature_detector_type,n,a,b,similarity_threshold);
+[repeat_score_2originimage2,repeat_score_tilt2rotate2,index_origin_image2,index_aff_image2] = Chen_imagerepeatability_inoneImage_analysis3(img_name1,feature_detector_type,n,a,b,similarity_threshold);
+
+
+
+% test and see how many features are from repeatable fetures and how many
+% of them are from unrepeatable(to the original image)
+Feature_Num1 = size(feature_index1,1);
+Feature_Num(1:3,1:6)=0;
+for kkk = 1:Feature_Num1
+    ii = feature_index1(kkk,1); 
+    jj = feature_index1(kkk,2);
+    Feature_Num(ii,jj)=Feature_Num(ii,jj)+1;
+end
+
+Match_Num = size(matches_Desc,2);
+
+
+Match_feature_Num(1:3,1:6)=0;
+Sum_Feature_Num = 0;
+for ii=1:3
+    for jj=1:6
+        
+    end
+end
+Current_Num = Current_Num+Feature_Num(ii,jj);
+Repeat_Count = 0;
+Origin_Index = 0;
+for kk = 1:Match_Num
+    c_index = matches_Desc(1,kk);
+    ii = feature_index1(c_index,1); jj = feature_index1(c_index,2);
+    Match_feature_Num(ii,jj) = Match_feature_Num(ii,jj)+1;
+    Frames_featureinsimulatedImage_index(kk) = frames_insimulatedimage_index1(c_index);
+    Current_frame_index = Frames_featureinsimulatedImage_index(kk);
+    if (find(index_aff_image1{ii,jj}==Current_frame_index))
+        NN_index = find(index_aff_image1{ii,jj}==Current_frame_index);
+        Repeat_Count = Repeat_Count + 1;
+        Origin_Index(Repeat_Count) = size(find(index_origin_image1{ii,jj},NN_index),2);
+        
+    end
+    
+%     ind(index_aff_image1(Frames_featureinsimulatedImage_index(kk)));
+end
+
+
+for ii=1:n+1
+    t(ii)=a^(ii-1);
+    k(ii) = floor(t(ii)*180/b)+1;
+end
+Repeattimes = zeros(size(index_origin_image1{ii,jj}));
+
+for ii=1:n
+    for jj=1:k(ii)
+        Repeattimes = Repeattimes+index_origin_image1{ii,jj};
+    end
+end
+
+hist(Repeattimes,13,1);
+for kkk = 1:Repeat_Count
+    Repeat_MatchedFeature_kkk = ();
+end
+% feature_detector_type = {'DoG','Hessian','HessianLaplace','HarrisLaplace','MultiscaleHessian','MultiscaleHarris'};
+subplot(2,1,1);bar3(Repeatfactor_alldetector{1,1});set(gca,'ztick',[0:0.1:1]);xlabel('tilt');ylabel('rotation');title('repeatability in Viewsphere for DoG');
+subplot(2,1,2);bar3(Repeatfactor_alldetector{2,1});set(gca,'ztick',[0:0.1:1]);xlabel('tilt');ylabel('rotation');title('repeatability in Viewsphere for Hessian');
+subplot(2,1,1);bar3(Repeatfactor_alldetector{3,1});set(gca,'ztick',[0:0.1:1]);xlabel('tilt');ylabel('rotation');title('repeatability in Viewsphere for HessianLaplace');
+subplot(2,1,2);bar3(Repeatfactor_alldetector{4,1});set(gca,'ztick',[0:0.1:1]);xlabel('tilt');ylabel('rotation');title('repeatability in Viewsphere for HarrisLaplace');
+subplot(2,1,1);bar3(Repeatfactor_alldetector{5,1});set(gca,'ztick',[0:0.1:1]);xlabel('tilt');ylabel('rotation');title('repeatability in Viewsphere for MultiscaleHessian');
+subplot(2,1,2);bar3(Repeatfactor_alldetector{6,1});set(gca,'ztick',[0:0.1:1]);xlabel('tilt');ylabel('rotation');title('repeatability in Viewsphere for MultiscaleHarris');
+

@@ -1,0 +1,29 @@
+% generate fully affine images according to the affine model in ASIFT paper
+
+function [aff_img] =  Chen_fullyaff_images_generate(img,a,b,n)
+% n = 6;
+% a = sqrt(2);
+% b = 72;
+% first compute the number of transformation steps in each parameter
+for ii=1:n+1
+    t(ii)=a^(ii-1);
+    k(ii) = floor(t(ii)*180/b)+1;
+end
+
+for ii=1:n
+    for jj=1:k(ii)
+        lat = t(ii);
+        log = (jj-1)*b*pi/(180*lat);
+        tform =Chen_AffineTransform( acos(1./lat),log,0,1,0,0);
+        outputImage = imwarp(img,tform);
+        aff_img{ii,jj} = outputImage;
+        imwrite(uint8(255*outputImage),[num2str(ii) num2str(jj-1) 'affined_image.jpg']);
+%         imshow(outputImage);
+    end
+end
+
+% tform =Chen_AffineTransform( acos(1./tilt(iii)),0,0,1,0,0);
+% outputImage = imwarp(A,tform);
+
+
+end

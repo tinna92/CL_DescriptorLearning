@@ -1,0 +1,163 @@
+% perform multiple transformations to the input image, collect the repeated feature surrounding
+% patches. Those patches could be used as training data.
+
+%% first read the original image and detect the DoG features in the original image
+similarity_threshold = 0.3;
+A = imread('000006-111406161233-04.tifresize.png');
+
+if(size(A,3)>1)
+    A_Image = rgb2gray(A);
+else
+    A_Image = A;
+end
+A_Image = single(A_Image);
+[frames_Image, descrs_Image] = vl_covdet(A_Image, 'Method','DoG','descriptor', 'Patch','PatchResolution',31,'Doubleimage',false,'Verbose','EstimateAffineShape', true) ;
+frames_origin = frames_Image(1:2,:);
+
+% do the transformations in differential tilt
+tilt = [sqrt(2),2,2*sqrt(2),4];
+for iii=1:3
+    % do the affine transformation with appropriate tilt
+    tform =Chen_AffineTransform( acos(1./tilt(iii)),0,0,1,0,0);
+    outputImage = imwarp(A,tform);
+    if(size(outputImage,3)>1)
+        outputImage = rgb2gray(outputImage);
+    end
+    imshow(outputImage);
+    outputImage = single(outputImage);
+    
+    % detect the features points in current transformed images
+    [frames1, descrs1] = vl_covdet(outputImage, 'Method','DoG','descriptor', 'Patch','PatchResolution',31,'Doubleimage',false,'Verbose','EstimateAffineShape', true) ;
+%     vl_plotframe(frames1) ;
+    
+    % get the inverse of Transform and map the detected feature points back
+    % to the original image coordinates
+    inv_T_temp = inv(tform.T);
+    current_frames = frames1(1:2,:);
+    current_frames(3,:) =1;
+    newfeatures = inv_T_temp*current_frames;
+    
+    Affine_feature{iii} = frames1; % record the current features in a cell
+    Affine_featurePatch{iii} = descrs1;
+    % compute the distance between every pair features
+    Num_1 = size(frames_origin,2);
+    Num_2 = size(newfeatures,2);
+    for ii = 1:Num_1
+        for jj= 1:Num_2
+            Dist(ii,jj)=(frames_origin(1,ii)-newfeatures(1,jj))^2+...
+                (frames_origin(2,ii)-newfeatures(2,jj))^2;
+        end
+    end
+    
+    % find the pair of features that is lied in less than 0.3 pixel (threshold)
+    [Dist_min,min_index] = min(Dist);
+    min_smallerthan1_index = Dist_min<similarity_threshold;
+    
+    num_minindex = size(min_index,2);
+    min_index_2nd = 1:num_minindex;
+    SelectedPair_index_1st = min_index(min_smallerthan1_index);
+    SelectedPair_index_2nd = min_index_2nd(min_smallerthan1_index);
+    num_min_smallerthan1_index = sum(min_smallerthan1_index); % get the number of marks which are smaller than the threshold
+    
+    for jjj=1:num_min_smallerthan1_index
+        ii = SelectedPair_index_2nd(jjj);
+        kk = SelectedPair_index_1st(jjj);
+        xx = floor(reshape(descrs1(:,ii),[63,63]));
+        yy = floor(reshape(descrs_Image(:,kk),[63,63]));
+        col_num = mod(jjj,16);
+        row_num = mod(jjj,16);
+        col_index = floor(jjj/16);
+        row_index = floor(jjj/16);
+        orig_left = col_index*63*2 + 1;
+        orig_right = orig_left + 62;
+        orig_top = row_num*63 + 1;
+        orig_bottom = row_num*63 + 63;
+        patchpair_image(orig_left:orig_right,orig_top:orig_bottom) =  uint8(xx);
+        patchpair_image(orig_right+1:orig_right+63,orig_top:orig_bottom) =   uint8(yy);
+    end
+    
+    pair_index_first{iii} = SelectedPair_index_1st;
+    pair_index_second{iii} = SelectedPair_index_2nd;
+    pair_image{iii} = patchpair_image;
+    
+    imshow(patchpair_image);% still need to write them into files
+    imwrite(patchpair_image,[int2str(iii) 'pair.jpg']); 
+    clear SelectedPair_index_1st;
+    clear SelectedPair_index_2nd;
+    clear Dist Dist_min min_index;
+    clear descrs1;clear frames1;
+    clear min_smallerthan1_index;
+    clear patchpair_image;
+    % get the marks for better visulization
+%     [Tag_left,Tag_right,Tag_top,Tag_bottom] = Chen_Getcrossmark(newfeatures,5);
+    
+%     figure(2);
+%     imshow(A);
+%     hold on;
+%     num_f = size(newfeatures,2);
+%     for ii=1:num_f
+%         plot([Tag_left(1,ii),Tag_right(1,ii)],[Tag_left(2,ii),Tag_right(2,ii)],'r','linewidth',1);
+%         plot([Tag_top(1,ii),Tag_bottom(1,ii)],[Tag_top(2,ii),Tag_bottom(2,ii)],'r','linewidth',1);
+%     end
+end
+
+%% determine whether the detected points is same to each other.
+% Num_1 = size(frames_origin,2);
+% Num_2 = size(newfeatures,2);
+% for ii = 1:Num_1
+%     for jj= 1:Num_2
+%         Dist(ii,jj)=(frames_origin(1,ii)-newfeatures(1,jj))^2+...
+%             (frames_origin(2,ii)-newfeatures(2,jj))^2;
+%     end
+% end
+% [Dist_min,min_index] = min(Dist);
+% min_smallerthan1_index = Dist_min<similarity_threshold;
+
+% link these features back to original features and affine transformed
+% features
+% num_minindex = size(min_index,2);
+% min_index_2nd = 1:num_minindex;
+% SelectedPair_index_1st = min_index(min_smallerthan1_index);
+% SelectedPair_index_2nd = min_index_2nd(min_smallerthan1_index);
+
+
+% num_min_smallerthan1_index = sum(min_smallerthan1_index); % get the number of marks which are smaller than the threshold
+% 
+% draw_color = ['g','r','c','m','y','k'];
+% draw_color_index =  mod(randperm(num_min_smallerthan1_index,num_min_smallerthan1_index),6)+1;
+% 
+% % display the repeated reprojected features on the original images
+% figure(3);
+% imshow(A);
+% hold on;
+% num_f = size(newfeatures,2);
+% for jjj=1:num_min_smallerthan1_index
+%     ii = SelectedPair_index_2nd(jjj);
+%     plot([Tag_left(1,ii),Tag_right(1,ii)],[Tag_left(2,ii),Tag_right(2,ii)],draw_color(draw_color_index(jjj)),'linewidth',1);
+%     plot([Tag_top(1,ii),Tag_bottom(1,ii)],[Tag_top(2,ii),Tag_bottom(2,ii)],draw_color(draw_color_index(jjj)),'linewidth',1);
+% end
+% 
+% % display on the original image that is without transformation
+% [Tag_ori_left,Tag_ori_right,Tag_ori_top,Tag_ori_bottom] = Chen_Getcrossmark(frames_origin,5);% for showing positions
+% figure(4);
+% imshow(A);
+% hold on;
+% % get the point coordinates for cross marks drawing
+% for jjj=1:num_min_smallerthan1_index
+%     ii = SelectedPair_index_1st(jjj);
+%     plot([Tag_ori_left(1,ii),Tag_ori_right(1,ii)],[Tag_ori_left(2,ii),Tag_ori_right(2,ii)],draw_color(draw_color_index(jjj)),'linewidth',1);
+%     plot([Tag_ori_top(1,ii),Tag_ori_bottom(1,ii)],[Tag_ori_top(2,ii),Tag_ori_bottom(2,ii)],draw_color(draw_color_index(jjj)),'linewidth',1);
+% end
+% 
+% % display the points positions on the affine transformed image
+% figure(5);
+% imshow(uint8(outputImage));
+% hold on;
+% % get the point coordinates for cross marks drawing
+% [Tag_aff_left,Tag_aff_right,Tag_aff_top,Tag_aff_bottom] =  Chen_Getcrossmark(current_frames,5);
+% for jjj=1:num_min_smallerthan1_index
+%     ii = SelectedPair_index_2nd(jjj);
+%     plot([Tag_aff_left(1,ii),Tag_aff_right(1,ii)],[Tag_aff_left(2,ii),Tag_aff_right(2,ii)],draw_color(draw_color_index(jjj)),'linewidth',1);
+%     plot([Tag_aff_top(1,ii),Tag_aff_bottom(1,ii)],[Tag_aff_top(2,ii),Tag_aff_bottom(2,ii)],draw_color(draw_color_index(jjj)),'linewidth',1);
+% end
+

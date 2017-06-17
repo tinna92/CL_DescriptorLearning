@@ -1,0 +1,233 @@
+% -------------------------------------------------------------------------
+% training the descriptor with a siamese architecture using rmsprop with
+% momentum
+% -------------------------------------------------------------------------
+
+% first set the required document directories
+setup ;
+
+% -------------------------------------------------------------------------
+% then load data and set paremeters for learning
+% -------------------------------------------------------------------------
+% load('notryose_pos.mat');
+% load('notryose_neg.mat');
+Num_Pos_valid_set = 100;% number of positive or negative samples in validation sets
+Num_pos = 5000;% number of postive(negative) examples for tarining datasets 
+Start_pos = 0; % start position for validation set extraction begin point in x_pos and x_neg
+Num_valid_set = Num_Pos_valid_set*2;% the real number of samples in validation sets
+
+% -------------------------------------------------------------------------
+% Set parameters for training, including the batch size and epoches
+% -------------------------------------------------------------------------
+Num_Epoches  = 30; % num of iterations( for each training sample)
+Size_batches = 128; % size of the batch
+Num_batches = 10; % how many batches are used for training
+BatchSample_status = 1; %set the default status as positive pairs
+Size_trainingSamples = Size_batches*Num_batches;
+Num_wholesamples = size(x_pos,1); % number of the training samples in the training dataset 
+% SampleIndex = randperm(Num_wholesamples,Size_trainingSamples); % used to generate the sample indexes
+SampleIndex = randperm(Size_trainingSamples,Size_trainingSamples); % used to generate the sample indexes
+
+% -------------------------------------------------------------------------
+% Initialize the training parameters with uniform distribution
+% -------------------------------------------------------------------------
+a = sqrt(6/1024);
+w1 = -a +2*a*(rand(5, 5, 1,5));
+a = sqrt(6/196);
+w2 = -a +2*a*(rand(5, 5, 5,25));
+a = sqrt(6/25);
+w3 = -a +2*a*(rand(5, 5, 25,125));
+
+w1 = single(w1);
+w2 = single(w2);
+w3 = single(w3);
+b1 = single(zeros(1,5));
+b2 = single(zeros(1,25));
+b3 = single(zeros(1,125));
+
+numIterations = 80 ;
+% rate = 5 ;
+rate = 0.05;
+momentum = 0.9 ;
+% shrinkRate = 0.0001 ;
+ shrinkRate = 0.00001 ;
+plotPeriod = 10 ;
+
+% Initial momentum
+w_momentum1 = zeros('like', w1) ;
+b_momentum1 = zeros('like', b1) ;
+w_momentum2 = zeros('like', w2) ;
+b_momentum2 = zeros('like', b2) ;
+w_momentum3 = zeros('like', w3) ;
+b_momentum3 = zeros('like', b3) ;
+
+% Initiallearningrate = 0.005;
+% Initiallearningrate = 0.0005;
+% Initiallearningrate = 0.000003;% Initiallearningrate = 0.000003 for multi mini batches, batch size = 256 works OK
+% Initiallearningrate = 0.000003;
+% gain_upperbound = 100;
+% gain_lowerbound = 0.1;
+% rate_gain= 0.3;
+% rate_decrease = 0.77;
+% inc = 1.2;
+% dec = 0.5;% if the last two gradients have the same sign, then increase the 
+%gaining rate by adding 0.05, otherwise, decrease it by multiplying 0.95 
+% -------------------------------------------------------------------------
+% now begin to do the real job in every epoch
+% -------------------------------------------------------------------------
+gama = 0.9;
+alpha =  0.001;
+sizew1 = [5 5 1 5];
+sizeb1 = [1 5];
+sizew2 = [5 5 5 25];
+sizeb2 = [1 25];
+sizew3 = [5 5 25 125];
+sizeb3 = [1 125];
+totalsizew1 = cumprod(sizew1);
+totalsizeb1 = cumprod(sizeb1);
+totalsizew2 = cumprod(sizew2);
+totalsizeb2 = cumprod(sizeb2);
+totalsizew3 = cumprod(sizew3);
+totalsizeb3 = cumprod(sizeb3);
+theta = [reshape(w1,1,totalsizew1(4)) reshape(b1,1,totalsizeb1(2)) reshape(w2,1,totalsizew2(4))...
+    reshape(b2,1,totalsizeb2(2)) reshape(w3,1,totalsizew3(4)) reshape(b3,1,totalsizeb3(2))];
+theta = theta'; % must be column vector
+
+for iii=1:Num_Epoches
+    
+    SampleIndex = randperm(Size_trainingSamples,Size_trainingSamples); % generate the random sample index
+    
+    % SampleIndex = randperm(Num_wholesamples,Size_trainingSamples); % used to generate the sample indexes, change the sample size every time
+    
+    % first try to train in every mini-batch
+    fprintf('loss in current epoch:');
+    for batch_ground =1:Num_batches 
+        if mod(batch_ground,2)==1
+            BatchSample_status = 1 ;
+        else
+            BatchSample_status = 0 ;
+        end
+        
+        if iii < 5
+%             rate = 0.005;
+            momentum = 0.5 ;
+%             res.rpropw1 = ones(size(w1));
+        else
+            if iii < 7
+%             rate = 0.01;
+            momentum = 0.7 ;
+            end
+        end
+        if iii >= 10
+%             rate = 0.02;
+            momentum = 0.9 ;
+        end
+        
+        % read the data
+        for ii=1:Size_batches
+            x_l(:,:,1,ii) = single(x_pos{SampleIndex((batch_ground-1)*Size_batches+ii),1});
+            x_r(:,:,1,ii) = single(x_pos{SampleIndex((batch_ground-1)*Size_batches+ii),2});
+            x_l(:,:,1,ii+Size_batches) = single(x_neg{SampleIndex((batch_ground-1)*Size_batches+ii),1});
+            x_r(:,:,1,ii+Size_batches) = single(x_neg{SampleIndex((batch_ground-1)*Size_batches+ii),2});
+        end
+        y(1:Size_batches)=1;
+        y(Size_batches+1:2*Size_batches)=0;
+        
+        % central normalize the training data (this basically means a lot of replicated
+        % computation,needs optimization)
+        for i=1:Size_batches*2
+            tmp_xl =  x_l(:,:,:,i);
+            tmp_xr =  x_r(:,:,:,i);
+            x_l(:,:,:,i) = (x_l(:,:,:,i) - mean(mean(mean(x_l(:,:,:,i)))))/std(tmp_xl(:));
+            x_r(:,:,:,i) = (x_r(:,:,:,i) - mean(mean(mean(x_r(:,:,:,i)))))/std(tmp_xr(:));
+        end
+               
+        if iii==1 && batch_ground ==1
+            r_t = zeros('like', theta) ;% initialize rt
+        end
+        [cost,grad]= Chen_DeepDescTrainingCost(theta,shrinkRate,x_l,x_r,y,3,15);
+        Loss_Rec_batch(batch_ground) = mean(cost);
+        fprintf('%d - %f  ',batch_ground,Loss_Rec_batch(batch_ground));
+        r_tminus1 = r_t;
+        r_t = (1-gama)*(grad.^2)+gama*r_tminus1;
+        % this setup is important for avoiding being divided by 0
+        idx = find(r_t == 0);
+        r_t(idx) = 1;
+        v_tplus1 = (alpha./sqrt(r_t)).*grad;
+        theta = theta - v_tplus1;       
+       
+    end
+    fprintf('\n Epoch :%d current loss: %f\n',iii,mean(Loss_Rec_batch));
+    Loss_Rec(iii) = mean(Loss_Rec_batch);% get the average Loss in the current epoch
+   
+%     iii;
+end
+
+% draw the downwards of cost
+subplot(3,1,1);
+plot(Loss_Rec);
+xlabel('epoch number');
+ylabel('average loss for training samples');
+% hold on
+
+% test the performance of the current learned parameters
+Size_testSamples = 10000;
+TestSampleIndex = randperm(Size_testSamples,Size_testSamples); % generate the random sample index
+TestSampleIndex = TestSampleIndex + Size_trainingSamples;
+
+for ii=1:Size_testSamples
+    test_x_l(:,:,1,ii) = single(x_pos{TestSampleIndex(ii),1});
+    test_x_r(:,:,1,ii) = single(x_pos{TestSampleIndex(ii),2});
+    test_x_l(:,:,1,ii+Size_testSamples) = single(x_neg{TestSampleIndex(ii),1});
+    test_x_r(:,:,1,ii+Size_testSamples) = single(x_neg{TestSampleIndex(ii),2});
+end
+
+for i=1:Size_testSamples*2
+    tmp_xl =  test_x_l(:,:,:,i);
+    tmp_xr =  test_x_r(:,:,:,i);
+    test_x_l(:,:,:,i) = (test_x_l(:,:,:,i) - mean(mean(mean(test_x_l(:,:,:,i)))))/std(tmp_xl(:));
+    test_x_r(:,:,:,i) = (test_x_r(:,:,:,i) - mean(mean(mean(test_x_r(:,:,:,i)))))/std(tmp_xr(:));
+end
+
+test_y(1:Size_testSamples)=1;
+test_y(Size_testSamples+1:2*Size_testSamples)=0;
+[test_Eucl_dist]= Chen_DeepDescTest(theta,shrinkRate,test_x_l,test_x_r,test_y);
+
+
+% get the distribution of the two classes
+subplot(3,1,2);
+[n,x] = hist(test_Eucl_dist(1:Size_testSamples), 200);
+plot(x, n/length(test_Eucl_dist(1:Size_testSamples)),'g'); hold on;
+[n1,x1] = hist(test_Eucl_dist(Size_testSamples+1:2*Size_testSamples), 200);
+plot(x1, n1/length(test_Eucl_dist(Size_testSamples+1:2*Size_testSamples)),'r');
+xlabel('patch pairs'' distance');
+ylabel('probablity of appearance');
+
+% get the ROC curve of descriptors
+subplot(3,1,3);
+Pos_num = 10000;
+Neg_num = 10000;
+xxx = [x x1];
+size = numel(xxx);
+min_x1 = min(x1);
+max_x  = max(x);
+ROC_points = 100;
+range = max_x - min_x1;
+iteration_step = range/ROC_points;
+for i=1:ROC_points
+    thershold = min_x1 + iteration_step*i;
+    index_x = x<thershold;
+    TP_N = sum(n(index_x));
+    FN_N = sum(n(~index_x));
+    FP_N = sum(n1(index_x));
+    TN_N = sum(n1(~index_x));
+    TPR(i) = TP_N/(TP_N + FN_N);
+    FPR(i) = FP_N/(FP_N + TN_N);
+end
+plot (FPR,TPR);grid on;
+xlabel('false positive rate');
+ylabel('true positive rate');
+title('ROC curve of descriptor');
+clear TPR FPR
+
+% save('learnedParamaters3005_20.mat','theta');

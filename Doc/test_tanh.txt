@@ -1,0 +1,3 @@
+ nnnnnnnn= vl_nntanh(resl.x2);
+ xxxx=(2*vl_nnsigmoid(2*resl.x2)-nnnnnnnn);
+ xxxx(:,:,1,1)

@@ -1,0 +1,86 @@
+% this function computes the cost of CNN based deep descriptor training
+% shrinkRate means weight decay
+function [Dist]= Chen_DeepDescEuclideanDistance_WithNonlinear_sigmoid_4layer(theta,shrinkRate,x_l,x_r,y,l_pull,l_push)
+sizew1 = [5 5 1 3];
+sizeb1 = [1 3];
+sizew2 = [5 5 3 9];
+sizeb2 = [1 9];
+sizew3 = [4 4 9 27];
+sizeb3 = [1 27];
+sizew4 = [5 5 27 81];
+sizeb4 = [1 81];
+totalsizew1 = cumprod(sizew1);
+totalsizeb1 = cumprod(sizeb1);
+totalsizew2 = cumprod(sizew2);
+totalsizeb2 = cumprod(sizeb2);
+totalsizew3 = cumprod(sizew3);
+totalsizeb3 = cumprod(sizeb3);
+totalsizew4 = cumprod(sizew4);
+totalsizeb4 = cumprod(sizeb4);
+% theta = theta';
+w1 = reshape(theta(1:totalsizew1(4)),sizew1(1),sizew1(2),sizew1(3),sizew1(4));
+b1 = reshape(theta(totalsizew1(4)+1:totalsizeb1(2)+totalsizew1(4)),sizeb1(1),sizeb1(2));
+mark1 = totalsizeb1(2)+totalsizew1(4);
+w2 = reshape(theta(mark1+1:mark1+totalsizew2(4)),sizew2(1),sizew2(2),sizew2(3),sizew2(4));
+b2 = reshape(theta(mark1+totalsizew2(4)+1:mark1+totalsizew2(4)+totalsizeb2(2)),sizeb2(1),sizeb2(2));
+mark2 = mark1+totalsizew2(4)+totalsizeb2(2);
+w3 = reshape(theta(mark2+1:mark2+totalsizew3(4)),sizew3(1),sizew3(2),sizew3(3),sizew3(4));
+b3 = reshape(theta(mark2+totalsizew3(4)+1:mark2+totalsizew3(4)+totalsizeb3(2)),sizeb3(1),sizeb3(2));
+mark3 = mark2+totalsizew3(4)+totalsizeb3(2);
+w4 = reshape(theta(mark3+1:mark3+totalsizew4(4)),sizew4(1),sizew4(2),sizew4(3),sizew4(4));
+b4 = reshape(theta(mark3+totalsizew4(4)+1:mark3+totalsizew4(4)+totalsizeb4(2)),sizeb4(1),sizeb4(2));
+% do the forward propagation first
+[resl,resr] = PatchDesc_DeepCnn_WithNonlinear_sigmoid_4layer(x_l,x_r, w1, b1,w2,b2,w3,b3,w4,b4);
+
+t = 1:size(x_l,4);
+% calculate the distance for each pair.
+MM = size(resl.x8,3);
+NN = size(resl.x8,4);
+xNNl = reshape(resl.x8,[MM NN]);
+xNNr = reshape(resr.x8,[MM NN]);
+dist = (xNNl-xNNr).*(xNNl-xNNr);
+Dist(t) = sqrt(sum(dist(:,t)));
+% compute current Loss  
+%          L = y.*max(0,Eucl_dist-0.6)+(1-y).*max(0,2-Eucl_dist);
+%           L = 0.5*y.*(max(0,Eucl_dist-1).^2)+0.5*(1-y).*(max(0,5-Eucl_dist).^2);% change the loss function into square of Euclidean distance
+%           L = y.*(max(0,Eucl_dist-1.5))+3*(1-y).*(max(0,4.5-Eucl_dist))+ 0.5 * shrinkRate * sum(w1(:).^2)+0.5 * shrinkRate * sum(w2(:).^2) +0.5 * shrinkRate * sum(w3(:).^2);% Try to change the loss function into L1 Norm
+%           L = 0.5*y.*(max(0,Eucl_dist-l_pull).^2)+0.5*(1-y).*(max(0,l_push-Eucl_dist).^2);% change the loss function into square of Euclidean distance
+%           L=  L  +  0.5 * shrinkRate * sum(w1(:).^2)+0.5 * shrinkRate * sum(w2(:).^2) +0.5 * shrinkRate * sum(w3(:).^2)+0.5 * shrinkRate * sum(w4(:).^2);
+          %          fprintf('currentpatchstatus: %f, current loss: %f\n',BatchSample_status,mean(L));
+%          fprintf('current loss: %f\n',mean(L));
+%  dLdD = single((y)&(Eucl_dist>0.6)) +  single((y-1) & (Eucl_dist<2)); 
+%          dLdD = single((y.*(Eucl_dist-1))&(Eucl_dist>1)) +  single((y-1).*(Eucl_dist-5) & (Eucl_dist<5));
+%          dLdD = single((y.*(Eucl_dist))) +  single((y-1).*(Eucl_dist-0.2) & (Eucl_dist<0.2));
+%           dLdD = single((y.*(Eucl_dist-l_pull)).*(Eucl_dist>l_pull)) +  single((1-y).*(Eucl_dist-l_push) .* (Eucl_dist<l_push));
+%          dLdD = single(y.*(Eucl_dist>1.5)) +  3*single((y-1).*(Eucl_dist<4.5));
+% change the form of resl.x3 and resr.x3 into vector
+% dLdxl = zeros(size(resl.x8)) ;
+% dDdx8l  = zeros(size(resl.x8)) ;
+% dLdxr = zeros(size(resl.x8)) ; 
+% dDdx8r = zeros(size(resl.x8)) ;
+% for t = 1:size(x_l,4)
+%     dDdx8l(:,:,:,t) = 2*(resl.x8(:,:,:,t)-resr.x8(:,:,:,t));
+%     dLdxl(:,:,:,t) = dLdD(t)*dDdx8l(:,:,:,t);
+%     dDdx8r(:,:,:,t) = 2*(resr.x8(:,:,:,t)-resl.x8(:,:,:,t));
+%     dLdxr(:,:,:,t) = dLdD(t)*dDdx8r(:,:,:,t);
+% end
+
+% dLdxl = single(dLdxl);
+% dLdxr = single(dLdxr);
+% [resl,resr] = PatchDesc_DeepCnn_WithNonlinear_sigmoid_4layer(x_l,x_r, w1, b1,w2,b2,w3,b3,w4,b4,dLdxl,dLdxr);
+% res.dzdw1 = (resl.dzdw1 + resr.dzdw1)/size(resl.x1,4) + shrinkRate*w1;
+% res.dzdb1 = (resl.dzdb1 + resr.dzdb1)/ size(resl.x1,4);
+% res.dzdw2 = (resl.dzdw2 + resr.dzdw2)/size(resl.x1,4)+ shrinkRate*w2;
+% res.dzdb2 = (resl.dzdb2 + resr.dzdb2)/ size(resl.x1,4);
+% res.dzdw3 = (resl.dzdw3 + resr.dzdw3)/size(resl.x1,4) + shrinkRate*w3;
+% res.dzdb3 = (resl.dzdb3 + resr.dzdb3)/ size(resl.x1,4);
+% res.dzdw4 = (resl.dzdw4 + resr.dzdw4)/size(resl.x1,4) + shrinkRate*w4;
+% res.dzdb4 = (resl.dzdb4 + resr.dzdb4)/ size(resl.x1,4);
+% give the return value of cost
+% cost = L;
+% cost = L';
+% grad = [reshape(res.dzdw1,1,totalsizew1(4)) reshape(res.dzdb1,1,totalsizeb1(2)) reshape(res.dzdw2,1,totalsizew2(4))...
+%     reshape(res.dzdb2,1,totalsizeb2(2)) reshape(res.dzdw3,1,totalsizew3(4)) reshape(res.dzdb3,1,totalsizeb3(2))...
+%     reshape(res.dzdw4,1,totalsizew4(4)) reshape(res.dzdb4,1,totalsizeb4(2))];
+% grad = grad';
+end

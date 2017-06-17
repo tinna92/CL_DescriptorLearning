@@ -1,0 +1,20 @@
+This is a package for learning descriptors. Several subfolders are created for better orgnizing files and resources.
+
+Data preperation.
+This section mainly includes training data generation
+
+Learning Descriptors
+several learning architectures are included in this section
+
+Performance Evaluation
+ROC curve of descriptors
+descriptor evaluation using 1-precision and recall curve
+
+Image Matching
+Several examples of using learned descriptors for matching
+
+Data
+training and evaluation data
+
+3rdPartyPackages
+3rd Party Packages for this work

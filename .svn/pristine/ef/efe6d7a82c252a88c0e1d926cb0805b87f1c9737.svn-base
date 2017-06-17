@@ -1,0 +1,9 @@
+% test for affine image matching
+
+[frames_Aff1,descrs_Aff1] = Chen_ExtractedAffineimageFeatures('000039-111406162434-02.tifresize.png','Hessian','SIFT',3,1.2,72);
+[frames_Aff2,descrs_Aff2] = Chen_ExtractedAffineimageFeatures('000042-111406162417-04.tifresize.png','Hessian','SIFT',3,1.2,72);
+
+match_ratio  =1.5;
+[matches_Desc, scores_Desc] = vl_ubcmatch(descrs_Aff1, descrs_Aff2,match_ratio);
+% randm_selected = randperm();
+Chen_show_matchresult(imread('000039-111406162434-02.tifresize.png'),imread('000042-111406162417-04.tifresize.png'),matches_Desc,frames_Aff1,frames_Aff2,0);

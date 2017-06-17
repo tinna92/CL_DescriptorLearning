@@ -1,0 +1,131 @@
+% image_name = '000003-111406161250-04.tifresize.png';
+% % image_name = 'box.png';
+% % image_name = 'test.PNG';
+function [frames_Aff1,frames_Aff2,correct_Match_coord1,correct_Match_coord2] = ...
+    Chen_ASIFT_Match(img_name1,img_name2,opts)
+
+% assign options and parameters for viewsphere simulation
+similarity_threshold = opts.similarity_threshold;
+feature_detector_type = opts.detector_type;
+feature_descriptor_type = opts.descriptor_type;
+n = opts.n; a = opts.a; b = opts.b;
+
+% do the viewsphere simulation
+[frames_Aff1,descrs_Aff1,feature_index1,frames_insimulatedimage_index1] = Chen_ExtractedAffineimageFeatures2(img_name1,feature_detector_type,feature_descriptor_type,n,a,b);
+[frames_Aff2,descrs_Aff2,feature_index2,frames_insimulatedimage_index2] = Chen_ExtractedAffineimageFeatures2(img_name2,feature_detector_type,feature_descriptor_type,n,a,b);
+
+% get the number of feature points in each affined version
+a = sqrt(2); n = 3; b = 72;
+for ii=1:n+1
+    t(ii)=a^(ii-1);
+    k(ii) = floor(t(ii)*180/b)+1;
+end
+num_features = zeros(n,k(n));
+num_features2 = zeros(n,k(n));
+
+for nn = 1:size(feature_index1,1)
+    ii = feature_index1(nn,1);
+    jj = feature_index1(nn,2);
+    num_features(ii,jj) =num_features(ii,jj)+ 1; 
+end
+
+for nn = 1:size(feature_index2,1)
+    ii = feature_index2(nn,1);
+    jj = feature_index2(nn,2);
+    num_features2(ii,jj) =num_features2(ii,jj)+ 1; 
+end
+
+% extract the feature descriptors for every version of images
+count_n1 = 0;
+count_n2 = 0;
+for ii=1:n
+    for jj=1:k(ii)
+        feature_Desc1{ii,jj} = descrs_Aff1(:,count_n1+1:count_n1+num_features(ii,jj));
+        feature_1{ii,jj} = frames_Aff1(:,count_n1+1:count_n1+num_features(ii,jj));
+        count_n1 = count_n1+num_features(ii,jj);
+        
+        feature_Desc2{ii,jj} = descrs_Aff2(:,count_n2+1:count_n2+num_features2(ii,jj));
+        feature_2{ii,jj} = frames_Aff2(:,count_n2+1:count_n2+num_features2(ii,jj));
+        count_n2 = count_n2+num_features2(ii,jj);
+    end
+end
+
+% match them (use image to image)and preserve the result in a struct of
+% Num x Num form, where Num represents the number of affine image versions
+match_ratio = 1.7;
+count_out =1;
+count_in = 1;
+match_num =0;
+for ii=1:n
+    for jj=1:k(ii)
+        for iii = 1:n
+            for jjj = 1:k(iii)
+%                 [matches_Desc, scores_Desc] = vl_ubcmatch(descrs_Aff1, descrs_Aff2,match_ratio); 
+                [matches_Desc_af{count_out,count_in},scores_Desc_af{count_out,count_in}] = ...
+                    vl_ubcmatch(feature_Desc1{ii,jj}, feature_Desc2{iii,jjj},match_ratio);
+                match_num = match_num + numel(scores_Desc_af{count_out,count_in}) ; % record the number of matches
+                count_in = count_in +1;
+            end
+        end 
+        count_in = 1;
+        count_out = count_out +1;
+    end
+end
+
+% calculate the number of matches and put all the match in an unified
+% structure (store them in Match_corresp, a 2 x matching_points_num matrix)
+matches_Desc_af_cp = matches_Desc_af;
+count_out =1;
+count_in = 1;
+match_num =0;
+count_n1 = 0;
+count_n2 = 0;
+for ii=1:n
+    for jj=1:k(ii)
+        for iii = 1:n
+            for jjj = 1:k(iii)
+                matches_Desc_af_cp{count_out,count_in}(1,:) = matches_Desc_af_cp{count_out,count_in}(1,:) + count_n1;
+                matches_Desc_af_cp{count_out,count_in}(2,:) = matches_Desc_af_cp{count_out,count_in}(2,:) + count_n2;
+                count_n2 = count_n2+num_features2(iii,jjj);
+                Match_corresp(1:2,match_num+1:match_num + numel(scores_Desc_af{count_out,count_in})) =...
+                    matches_Desc_af_cp{count_out,count_in}; % record the matching as a direct 2 x match_num form
+                match_num = match_num + numel(scores_Desc_af{count_out,count_in}) ; % record the matching number
+                count_in = count_in + 1;
+            end
+        end 
+        count_in = 1;
+        count_out = count_out +1;
+        count_n1 = count_n1+num_features(ii,jj);
+        count_n2 = 0;
+    end
+end
+
+
+% analyze the repeatable features in each feature set by the function Chen_analyze_repeatable_features
+Re_index1 = Chen_analyze_repeatable_features(frames_Aff1,32); %analyze how much of the features are repeatable features 
+Re_index2 = Chen_analyze_repeatable_features(frames_Aff2,32);
+Re_Match_cp(1,:) = Re_index1(Match_corresp(1,:));
+Re_Match_cp(2,:) = Re_index2(Match_corresp(2,:));
+
+
+yyyy = unique(Re_Match_cp','rows'); % find how many of them are repeated features with other ones
+% Chen_show_matchresult(rgb2gray(imread(img_name1)),rgb2gray(imread(img_name2)), yyyy',frames_Aff1,frames_Aff2,0);
+yyyy =yyyy';
+
+% find the inlinears of matchng points by RANSAC
+clear inlinear_index;
+[F_matrix,inlinear_index] = Chen_estimateFundmentalmatrix_RANSAC(frames_Aff1,frames_Aff2,yyyy,2,30000);
+Initial_MatchNum = size(Match_corresp,2);
+clear img_coord1 img_coord2 correct_Match_coord1 correct_Match_coord2;
+img_coord1 = yyyy(1:2,Match_corresp(1,:));
+img_coord2 = yyyy(1:2,Match_corresp(2,:));
+correct_Match_coord1 = img_coord1(1:2,inlinear_index);
+correct_Match_coord2 = img_coord2(1:2,inlinear_index);
+
+% draw epipolar lines and show matching result.
+draw_epipolar_lines(F_matrix,rgb2gray(imread(img_name1)),...
+    rgb2gray(imread(img_name2)),correct_Match_coord1',correct_Match_coord2');
+Chen_show_matchresult(rgb2gray(imread(img_name1)),rgb2gray(imread(img_name2)), yyyy(1:2,inlinear_index),frames_Aff1,frames_Aff2,0);
+
+end
+

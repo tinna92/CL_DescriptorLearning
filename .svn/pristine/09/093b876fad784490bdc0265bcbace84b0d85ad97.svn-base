@@ -1,0 +1,120 @@
+% this function gives a detailed repeatablity evaluation for images from
+% different viewpoints (or with different level of affine transformations)
+function [feature_points,repeatablity] = Chen_evaluate_Detectors_Repeatability(img,method,similarity_threshold)
+if(size(img,3)>1)
+     img = rgb2gray(img);
+end
+ 
+% if method == 'fast'
+%    c12 = fast12(img, 30,1); 
+% end
+c12 = fast12(img, 30,1);
+frames_origin = c12(:,1:2)';
+% do the transformations in differential tilt
+tilt = [sqrt(2),2,2*sqrt(2),4];
+
+for iii=1:4
+    % do the affine transformation with appropriate tilt
+    tform =Chen_AffineTransform( acos(1./tilt(iii)),0,0,1,0,0);
+    outputImage = imwarp(img,tform);
+    if(size(outputImage,3)>1)
+        outputImage = rgb2gray(outputImage);
+    end
+    
+     imshow(outputImage);
+     outputImage = double(outputImage);
+     % detect the features points in current transformed images
+%      [frames1, descrs1] = vl_covdet(outputImage, 'Method','HarrisLaplace','descriptor', 'Patch','PatchResolution',31,'Doubleimage',false,'Verbose','EstimateAffineShape', true) ;
+     c12_aff = fast12(outputImage, 30,1);
+     frames1 = c12_aff(:,1:2)';
+     inv_T_temp = inv(tform.T);
+     current_frames = frames1(1:2,:);
+     current_frames(3,:) =1;
+     newfeatures = inv_T_temp*current_frames;
+     
+     Affine_feature{iii} = frames1; % record the current features in a cell
+%      Affine_featurePatch{iii} = descrs1;
+     
+     % compute the distance between every pair features,needs to optimize
+     Num_1 = size(frames_origin,2); % num of image features in the original images
+     Num_2 = size(newfeatures,2); % num of image features in the transformed version image
+     for ii = 1:Num_1
+         for jj= 1:Num_2
+             Dist(ii,jj)=(frames_origin(1,ii)-newfeatures(1,jj))^2+...
+                 (frames_origin(2,ii)-newfeatures(2,jj))^2;
+             %                  Dist(jj,ii) = Dist(ii,jj);
+         end
+     end
+     
+     % find the pair of features that is lied in less than 0.3 pixel (threshold)
+     [Dist_min,min_index] = min(Dist');
+     min_smallerthan1_index = Dist_min<similarity_threshold; % this is the index for the orignal image
+     
+     num_minindex = size(min_index,2);
+     min_index_2nd = 1:num_minindex;
+     second_image_index = min_index.*min_smallerthan1_index;
+     second_image_index_group(iii,:) = second_image_index;
+     SelectedPair_index_2nd = min_index(min_smallerthan1_index);
+     SelectedPair_index_1st = min_index_2nd(min_smallerthan1_index);
+     num_min_smallerthan1_index = sum(min_smallerthan1_index); % get the number of marks which are smaller than the threshold
+    % find the repeat score of every feature in the original image
+    pair_index_first{iii} = SelectedPair_index_1st;% for the first image
+    pair_index_second{iii} = SelectedPair_index_2nd;
+    smaller_thanthreshold_index {iii} = min_smallerthan1_index;
+    clear SelectedPair_index_1st;
+    clear SelectedPair_index_2nd;
+    clear Dist Dist_min min_index;
+    clear frames1;
+    clear min_smallerthan1_index;
+end
+
+Repeat_Score = zeros(size(smaller_thanthreshold_index{1}));
+
+for iii = 1:4
+    AAA = double(smaller_thanthreshold_index{iii});
+    Repeat_Score = Repeat_Score + AAA;
+end
+
+    % find the one appears in all 4 images
+    % highest_score_index = Repeat_Score>3;
+    highest_score_index = find(Repeat_Score==4);
+    Num = numel(highest_score_index);
+    % [highest_socre,highest_score_index] = find(Repeat_Score==4);
+    for jjj=1:Num
+        ii = highest_score_index(jjj);
+        index_origin_image(jjj) = ii;
+        index_affined_image(:,jjj) = second_image_index_group(:,ii);
+    end
+    
+%     for jjj=1:Num
+%         ii = index_origin_image(jjj);
+%         jj = index_affined_image(:,jjj); 
+%         xx = floor(reshape(descrs_Image(:,ii),[63,63])); % for patch in original image
+%         orig_top = (jjj-1)*63 + 1;
+%         orig_bottom = jjj*63;
+%         patchpair_image(orig_top:orig_bottom,1:63) = uint8(xx);
+%         for kkk=1:4
+%             k_index = jj(kkk);
+%             yy = floor(reshape(Affine_featurePatch{kkk}(:,k_index),[63,63]));
+%             orig_left = kkk*63 + 1;
+%             orig_right = (kkk+1)*63;
+%             patchpair_image(orig_top:orig_bottom,orig_left:orig_right) = uint8(yy);
+%         end
+%     end
+%     imshow(patchpair_image);
+%     imwrite(patchpair_image,[image_name 'patch_image1_HarrisLaplace.jpg']);
+    
+    draw_color = ['g','r','c','m','y','k'];
+    draw_color_index =  mod(randperm(Num,Num),6)+1;
+    [Tag_ori_left,Tag_ori_right,Tag_ori_top,Tag_ori_bottom] = Chen_Getcrossmark(frames_origin,5);% for showing positions
+    figure(2);
+    imshow(img);
+    hold on;
+    % get the point coordinates for cross marks drawing
+    for jjj=1:Num
+        ii = index_origin_image(jjj);
+        plot([Tag_ori_left(1,ii),Tag_ori_right(1,ii)],[Tag_ori_left(2,ii),Tag_ori_right(2,ii)],draw_color(draw_color_index(jjj)),'linewidth',1);
+        plot([Tag_ori_top(1,ii),Tag_ori_bottom(1,ii)],[Tag_ori_top(2,ii),Tag_ori_bottom(2,ii)],draw_color(draw_color_index(jjj)),'linewidth',1);
+    end
+end
+

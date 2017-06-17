@@ -1,0 +1,15 @@
+% test for affine image matching
+
+% [frames_Aff1,descrs_Aff1] = Chen_ExtractedAffineimageFeatures('000039-111406162434-02.tifresize.png','Hessian','SIFT',3,1.2,72);
+% [frames_Aff2,descrs_Aff2] = Chen_ExtractedAffineimageFeatures('000042-111406162417-04.tifresize.png','Hessian','SIFT',3,1.2,72);
+% [frames_Aff1,descrs_Aff1] = Chen_ExtractedAffineimageFeatures('E:\software\IPI\exampledata\10affined_image.jpg','Hessian','SIFT',3,1.2,72);
+% [frames_Aff2,descrs_Aff2] = Chen_ExtractedAffineimageFeatures('E:\software\IPI\exampledata\34affined_image.jpg','Hessian','SIFT',3,1.2,72);
+
+[frames_Aff1,descrs_Aff1] = Chen_ExtractedAffineimageFeatures('E:\MultiPlatform Photogrammetry dataset\RELEASE_FOLDER_IMAGE_ORIENTATION\Photogrammetric_image_block\images\003_017_145000238.tifresize.png','Hessian','SIFT',3,1.2,72);
+[frames_Aff2,descrs_Aff2] = Chen_ExtractedAffineimageFeatures('E:\MultiPlatform Photogrammetry dataset\RELEASE_FOLDER_IMAGE_ORIENTATION\Photogrammetric_image_block\images\007_017_163000166.tifresize.png','Hessian','SIFT',3,1.2,72);
+
+match_ratio  =1.5;
+[matches_Desc, scores_Desc] = vl_ubcmatch(descrs_Aff1, descrs_Aff2,match_ratio);
+% randm_selected = randperm();
+Chen_show_matchresult(rgb2gray(imread('E:\MultiPlatform Photogrammetry dataset\RELEASE_FOLDER_IMAGE_ORIENTATION\Photogrammetric_image_block\images\003_017_145000238.tifresize.png')),...
+    rgb2gray(imread('E:\MultiPlatform Photogrammetry dataset\RELEASE_FOLDER_IMAGE_ORIENTATION\Photogrammetric_image_block\images\007_017_163000166.tifresize.png')),matches_Desc,frames_Aff1,frames_Aff2,0);

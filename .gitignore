@@ -45,3 +45,13 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+#folders in the container should be ignored
+data/
+CodeRansac/data/
+*.zip
+learnedparameters/
+tSNE_matlab/
+*.jpg
+*.mat
+*.eps

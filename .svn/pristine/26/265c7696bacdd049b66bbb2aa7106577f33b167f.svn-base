@@ -1,0 +1,48 @@
+% image_name = '000003-111406161250-04.tifresize.png';
+% image_name = 'box.png';
+image_name = 'test.PNG';
+similarity_threshold = 0.8;
+A = imread(image_name);
+if(size(A,3)>1)
+    A_Image = rgb2gray(A);
+else
+    A_Image = A;
+end
+A_Image = single(A_Image);
+size_img = size(A_Image);
+% first detect features in original image.
+[frames_origin, descrs_origin] = vl_covdet(A_Image, 'Method','HarrisLaplace','descriptor', 'Patch','PatchResolution',31,'Doubleimage',false,'Verbose','EstimateAffineShape', true) ;
+% generate the fully affined images according to ASIFT paper
+n = 6;
+a = sqrt(2);
+b = 72;
+[aff_img] =  Chen_fullyaff_images_generate(A_Image,sqrt(2),b,n);
+
+% generate features in training samples
+for ii=1:n+1
+    t(ii)=a^(ii-1);
+    k(ii) = floor(t(ii)*180/b)+1;
+end
+
+for ii=1:n
+    for jj=1:k(ii)
+        lat = t(ii);
+        log = (jj-1)*b*pi/(180*lat);
+        tform =Chen_AffineTransform( acos(1./lat),log,0,1,0,0);
+        current_affimg = aff_img{ii,jj};
+        current_affimg = single(current_affimg);
+        % detect features in the current affined image
+        [frames, descrs] = vl_covdet(current_affimg, 'Method','HarrisLaplace','descriptor', 'Patch','PatchResolution',31,'Doubleimage',false,'Verbose','EstimateAffineShape', true) ;
+        [xtrans, ytrans] = Chen_Get_Trans_By_Angle(size_img,tform.T);
+%         frames(:,1) = frames(:,1)-xtrans;
+%         frames(:,2) = frames(:,2)-ytrans;% translate the coordinate to original affined version image
+        frames(1,:) = frames(1,:)-ytrans;
+        frames(2,:) = frames(2,:)-xtrans;% translate the coordinate to original affined version image
+        [index_ifrepeat_1stimg,repeated_feature_index_2ndimg] = Chen_analy_repeatedfeatures_in_2Images(frames_origin, frames,tform.T,similarity_threshold);
+        frames_aff{ii,jj} = frames;
+        descrs_aff{ii,jj} = descrs;
+        aff_mat{ii,jj} = tform.T;
+    end
+end
+% analyze repeated features between image pairs
+ 

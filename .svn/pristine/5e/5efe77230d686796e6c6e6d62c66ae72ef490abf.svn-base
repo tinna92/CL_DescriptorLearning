@@ -1,0 +1,43 @@
+function [Matches] = Chen_generateGroundtruthMatch(datasetname)
+import localFeatures.*;
+
+%% first generate the groundtruth correpondence data.
+
+%siftDetector = VlFeatSift('firstOctave',-1); % upsampling SIFT
+siftDetector = VlFeatSift(); % upsampling SIFT
+mserDetector = VlFeatMser('MinDiversity',0.5);
+import datasets.*;
+import benchmarks.*;
+dataset = VggAffineDataset('category',datasetname);
+
+
+% Next, the benchmark is intialised by choosing various
+% parameters. The defaults correspond to the seetting in the original
+% publication (IJCV05).
+repBenchmark = RepeatabilityBenchmark('Mode','Repeatability');
+detectors{1} = siftDetector ;
+ detectors{2} = mserDetector ;
+ detectors{3} = VlFeatCovdet('method', 'hessianlaplace', ...
+                                 'estimateaffineshape', true, ...
+                                 'estimateorientation', false, ...
+                                 'peakthreshold',0.0035,...
+                                 'doubleImage', false);
+matchScore = [] ;
+numMatches = [] ;
+Matches = cell(numel(detectors),dataset.NumImages);
+ReprojFrames = cell(numel(detectors),dataset.NumImages);
+
+for d = 1:numel(detectors)
+  for i = 2:dataset.NumImages
+    [matchScore(d,i) numMatches(d,i) Matches{d,i} ReprojFrames{d,i}] = ...
+      repBenchmark.GetfeatureGroundmatch(detectors{d}, ...
+                              dataset.getTransformation(i), ...
+                              dataset.getImagePath(1), ...
+                              dataset.getImagePath(i));
+  end
+end
+
+GroundTruth_matches = Matches;
+savename=[datasetname '_GroundTruth_matches.mat'];
+save(savename,'GroundTruth_matches');
+end

@@ -1,0 +1,102 @@
+%% load image, detect feature points and extract surrounding patches 
+% img = imread('000002-111406161256-02.tifresize.png');
+% img2 = imread('000006-111406161233-04.tifresize.png');
+% img = imread('000002-111406161256-11.tifresize.png');
+% img2 = imread('000003-111406161250-04.tifresize.png');
+% img = imread('10affined_image.jpg');
+% img2 = imread('40affined_image.jpg');
+% img = imread('img3.jpg');
+% img2 = imread('img5.jpg');
+% img = imread('landscape-a.jpg');
+% img2 = imread('landscape-b.jpg');
+img = imread('E:\KarstenData\apartimg\000002-111406161256-11.tifresize.png');
+img2 = imread('E:\KarstenData\apartimg\000003-111406161250-04.tifresize.png');
+
+if(size(img,3)>1)
+    img_left = rgb2gray(img);
+else
+    img_left = img;
+end
+img_left = im2single(img_left);
+[frames_left,Patch_left] = chen_extractSIFTpatch_CNN(img_left);
+
+if(size(img2,3)>1)
+    img_right = rgb2gray(img2);
+else
+    img_right = img2;
+end
+img_right = im2single(img_right);
+[frames_right,Patch_right] = chen_extractSIFTpatch_CNN(img_right);
+
+%% arrange them into cnn descriptor feature adapted form
+patch_size = 32;
+desc_left_num = size(Patch_left,2);
+desc_right_num = size(Patch_right,2);
+patch_descrs_left = zeros(patch_size,patch_size,desc_left_num);
+patch_descrs_right = zeros(patch_size,patch_size,desc_right_num);
+patch_CNNInput_left = zeros(patch_size,patch_size,1,desc_left_num);
+patch_CNNInput_right = zeros(patch_size,patch_size,1,desc_right_num);
+
+for ii=1:desc_left_num
+     patch_descrs_left(:,:,ii) = reshape(Patch_left(:,ii),patch_size,patch_size);
+     patch_CNNInput_left(:,:,1,ii) =  patch_descrs_left(:,:,ii);
+end
+for ii=1:desc_right_num
+     patch_descrs_right(:,:,ii) = reshape(Patch_right(:,ii),patch_size,patch_size);
+     patch_CNNInput_right(:,:,1,ii) =  patch_descrs_right(:,:,ii);
+end
+
+% renormalization
+for ii=1:desc_left_num
+    tmp_xl =  patch_CNNInput_left(:,:,:,ii); 
+    patch_CNNInput_left(:,:,:,ii) = (patch_CNNInput_left(:,:,:,ii) - mean(mean(mean(patch_CNNInput_left(:,:,:,ii)))))/std(tmp_xl(:));    
+end
+for ii=1:desc_right_num
+   tmp_xr =  patch_CNNInput_right(:,:,:,ii);
+   patch_CNNInput_right(:,:,:,ii) = (patch_CNNInput_right(:,:,:,ii) - mean(mean(mean(patch_CNNInput_right(:,:,:,ii)))))/std(tmp_xr(:));
+end
+% setup ;
+
+%% load trained classifer and extract features
+% load('learnedParamaters_from_affinepatch_0720_50.mat');
+% load('learnedParamaters_from_affinepatch_0721_20.mat');
+load('learnedParamaters3005_20.mat');
+sizew1 = [5 5 1 5];
+sizeb1 = [1 5];
+sizew2 = [5 5 5 25];
+sizeb2 = [1 25];
+sizew3 = [5 5 25 125];
+sizeb3 = [1 125];
+totalsizew1 = cumprod(sizew1);
+totalsizeb1 = cumprod(sizeb1);
+totalsizew2 = cumprod(sizew2);
+totalsizeb2 = cumprod(sizeb2);
+totalsizew3 = cumprod(sizew3);
+totalsizeb3 = cumprod(sizeb3);
+% theta = theta';
+w1 = reshape(theta(1:totalsizew1(4)),sizew1(1),sizew1(2),sizew1(3),sizew1(4));
+b1 = reshape(theta(totalsizew1(4)+1:totalsizeb1(2)+totalsizew1(4)),sizeb1(1),sizeb1(2));
+mark1 = totalsizeb1(2)+totalsizew1(4);
+w2 = reshape(theta(mark1+1:mark1+totalsizew2(4)),sizew2(1),sizew2(2),sizew2(3),sizew2(4));
+b2 = reshape(theta(mark1+totalsizew2(4)+1:mark1+totalsizew2(4)+totalsizeb2(2)),sizeb2(1),sizeb2(2));
+mark2 = mark1+totalsizew2(4)+totalsizeb2(2);
+w3 = reshape(theta(mark2+1:mark2+totalsizew3(4)),sizew3(1),sizew3(2),sizew3(3),sizew3(4));
+b3 = reshape(theta(mark2+totalsizew3(4)+1:mark2+totalsizew3(4)+totalsizeb3(2)),sizeb3(1),sizeb3(2));
+
+[resl,resr] = PatchDesc_DeepCnn_WithNonlinear_sigmoid(single(patch_CNNInput_left),single(patch_CNNInput_right), w1, b1,w2,b2,w3,b3);
+
+% convert the CNN output into vl_ubcmatch required form
+for ii=1:desc_left_num
+    CNNdescriptor_left(:,ii) = resl.x6(1,1,:,ii);
+%     patch_CNNInput2(:,:,1,ii) = kron( patch_descrs2(:,:,ii),ones(2));
+end
+
+for ii=1:desc_right_num
+    CNNdescriptor_right(:,ii) = resr.x6(1,1,:,ii);
+%     patch_CNNInput2(:,:,1,ii) = kron( patch_descrs2(:,:,ii),ones(2));
+end
+match_ratio  =1.5;
+clear matches_CNN_Desc scores_CNN_Desc;
+[matches_CNN_Desc, scores_CNN_Desc] = vl_ubcmatch(CNNdescriptor_left, CNNdescriptor_right,match_ratio);
+% randm_selected = randperm();
+Chen_show_matchresult(uint8(255*img_left),uint8(255*img_right),matches_CNN_Desc,frames_left,frames_right,0);

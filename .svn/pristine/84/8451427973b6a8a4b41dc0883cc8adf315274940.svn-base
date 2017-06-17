@@ -1,0 +1,19 @@
+test the influence of threshold l_pull and l_push
+
+
+firstly, the following test could be done:
+1) How l_pull and l_push influence the performance of the learning descriptor?
+test the following cases:
+l_pull = 0, l_push = 10
+l_pull = 1, l_push = 10 6.4% (0,10 for sort and 1,10 for mining)
+l_pull = 3, l_push = 10 8.6%
+l_pull = 5, l_push = 10 10.1%
+l_pull = 7, l_push = 10 
+
+
+(Train: Liberty 0,10 for sort  (1,10 with mining) ,mining to 125 (from 1000))
+test : Notreme 6.4%, Yosemite 10.9%) without saving theta,
+then test mining with 0 and 10.
+
+
+2) Test the influence of coefficients before C_s and C_ds, namely the relative ratio of similar and dissimilar cost.

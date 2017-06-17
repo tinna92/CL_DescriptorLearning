@@ -1,0 +1,31 @@
+% evaluate the feature detector repeatability in different view of images from the view sphere
+PatchDir='E:\KarstenData\apartimg1\';
+D = dir([PatchDir '*.png']);
+nFiles = numel(D);
+% info = load([PatchDir infoFileName]);
+% nPatches = size(info, 1);
+k = 0;
+% 
+% image_name = '000003-111406161250-04.tifresize.png';
+feature_detector_type = {'DoG','Hessian','HessianLaplace','HarrisLaplace','MultiscaleHessian','MultiscaleHarris'};
+n=4;
+a=sqrt(2);
+b=72;
+similarity_threshold = 1.0;
+
+
+% extract patches from the first image to the last image
+disp('start doing job');
+Whole_Num = 0;
+for i_detector = 1:6
+    for iFile = 1:nFiles
+    %         fprintf('%d/%d\n', iFile, nFiles);
+        [repeat_score]= Chen_imagerepeatability_inoneImage_analysis2([PatchDir D(iFile).name],feature_detector_type{i_detector},n,a,b,similarity_threshold);
+        Repeatfactor_alldetector{i_detector,iFile} = repeat_score;
+        fprintf('%d image, %d detector, %c\n',iFile,i_detector,feature_detector_type{i_detector});
+end
+end
+% save('aff_pos.mat','Patch_pos');save('aff_neg.mat','Patch_neg');
+save('repeat_score_differentdetector1610result.mat','Repeatfactor_alldetector');
+
+% show the repeatablity from the evaluation

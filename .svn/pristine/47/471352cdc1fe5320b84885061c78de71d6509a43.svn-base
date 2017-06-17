@@ -1,0 +1,13 @@
+% chen_extractSIFTpatch extract the sift feature point (frames) arounding patch in
+% img
+function [Patch] = chen_extractSIFTpatch2(img,f)
+
+[frames descrs22] = vl_covdet(img, 'descriptor', 'Patch','PatchResolution',31,'PatchRelativeExtent',7.5,'PatchRelativeSmoothing',1.0,'Doubleimage',false,'Frames',f) ;
+for i=1:size(descrs22,2)
+    Temp_patch=reshape(descrs22(:,i),63,63);
+    small_patch=imresize(Temp_patch,[16 16]);
+    nn=reshape(small_patch,1,256);
+    Patch(:,i)=nn';
+end
+
+end

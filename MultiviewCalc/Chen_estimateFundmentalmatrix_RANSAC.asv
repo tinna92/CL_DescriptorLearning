@@ -1,0 +1,40 @@
+% estimate the fundmental matrix with RANSAC method
+% see http://www.cc.gatech.edu/~hays/compvision/proj3/ for a guidence
+function [F_matrix,inlinear_index] = Chen_estimateFundmentalmatrix_RANSAC(frames1,frames2,match,Fund_thershold,max_iter_step)
+Initial_MatchNum = size(match,2);
+img_coord1 = frames1(1:2,match(1,:));
+img_coord2 = frames2(1:2,match(2,:));
+img_coord1(3,:) =1;
+img_coord2(3,:) =1;
+for ii = 1:max_iter_step
+    [Pick_point_index] = randperm(Initial_MatchNum,7);
+    Current_selectedPoint_coord1 = img_coord1(1:3,Pick_point_index);
+    Current_selectedPoint_coord2 = img_coord2(1:3,Pick_point_index);
+%     Current_selectedPoint_coord1(3,:) =1;
+%     Current_selectedPoint_coord2(3,:) =1;
+    current_F = estimateFundMatFromimagePoints(Current_selectedPoint_coord1,Current_selectedPoint_coord2); % calculate the fundmental matrix
+    
+    
+    % estimate the error and record the points which meet the current
+    % estimated model
+    Current_error = Chen_CalPointPair_FundmentalMatrix_error(current_F,img_coord1',img_coord2');
+    Num(ii) = sum(Current_error<Fund_thershold);
+    Index_record(ii,1:7)=Pick_point_index;
+    % give the number of inlinears
+    
+end
+
+[m,maxindex] = max(Num);
+Pick_point_index = Index_record(maxindex,1:7);
+Current_selectedPoint_coord1 = img_coord1(1:3,Pick_point_index);
+Current_selectedPoint_coord2 = img_coord2(1:3,Pick_point_index);
+% Current_selectedPoint_coord1(3,:) =1;
+% Current_selectedPoint_coord2(3,:) =1;
+current_F = estimateFundMatFromimagePoints(Current_selectedPoint_coord1,Current_selectedPoint_coord2); % calculate the fundmental matrix
+Current_error = Chen_CalPointPair_FundmentalMatrix_error(current_F,img_coord1',img_coord2');
+[m,all_point_index] = find(Current_error<Fund_thershold);
+inlinear_index = all_point_index;
+Current_selectedPoint_coord1 = img_coord1(1:3,all_point_index);
+Current_selectedPoint_coord2 = img_coord2(1:3,all_point_index);
+
+end
