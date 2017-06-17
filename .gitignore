@@ -56,3 +56,5 @@ tSNE_matlab/
 *.mat
 *.eps
 *.gz
+*.emf
+*.png
