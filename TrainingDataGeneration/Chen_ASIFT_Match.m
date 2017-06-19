@@ -11,8 +11,8 @@ feature_descriptor_type = opts.descriptor_type;
 n = opts.n; a = opts.a; b = opts.b;
 
 % do the viewsphere simulation
-[frames_Aff1,descrs_Aff1,feature_index1,frames_insimulatedimage_index1] = Chen_ExtractedAffineimageFeatures2(img_name1,feature_detector_type,feature_descriptor_type,n,a,b);
-[frames_Aff2,descrs_Aff2,feature_index2,frames_insimulatedimage_index2] = Chen_ExtractedAffineimageFeatures2(img_name2,feature_detector_type,feature_descriptor_type,n,a,b);
+[frames_Aff1, descrs_Aff1, feature_index1, frames_insimulatedimage_index1] = Chen_ExtractedAffineimageFeatures2(img_name1,feature_detector_type,feature_descriptor_type,n,a,b);
+[frames_Aff2, descrs_Aff2, feature_index2, frames_insimulatedimage_index2] = Chen_ExtractedAffineimageFeatures2(img_name2,feature_detector_type,feature_descriptor_type,n,a,b);
 
 % get the number of feature points in each affined version
 a = sqrt(2); n = 3; b = 72;

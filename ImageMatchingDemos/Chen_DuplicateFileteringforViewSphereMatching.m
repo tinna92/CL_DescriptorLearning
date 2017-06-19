@@ -1,6 +1,8 @@
 % duplicate filtering of ASIFT matches according to 
 % MODS: Fast and Robust Method for Two-View Matching
 % D Mishkin, J Matas, M Perdoch - arXiv preprint arXiv:1503.02619, 2015
+% when the distance of features are smaller than some threshold, only
+% one feature will be preserved
 function [filtered_outmatches] = Chen_DuplicateFileteringforViewSphereMatching(frames1,frames2,matches,threshold_manytone,threshold_onetomany)
 % Initial_MatchNum = size(match,2);
 img_coord1 = frames1(1:2,matches(1,:));
@@ -8,17 +10,25 @@ img_coord2 = frames2(1:2,matches(2,:));
 Num_1 = size(img_coord1,2);  
 % Num_2 = size(img_coord2,2); % num of image features in the transformed version image
 
+% calculate the distance of features to each other feature (Brute Force Method) 
+Dist1 = ones(Num_1, Num_1);
+Dist2 = ones(Num_1, Num_1);
 for ii = 1:Num_1
     for jj= 1:Num_1
         Dist1(ii,jj)=(img_coord1(1,ii)-img_coord1(1,jj))^2+...
             (img_coord1(2,ii)-img_coord1(2,jj))^2;
         Dist2(ii,jj)=(img_coord2(1,ii)-img_coord2(1,jj))^2+...
             (img_coord2(2,ii)-img_coord2(2,jj))^2;
+        if ii==jj
+            Dist1(ii,jj) = 100;
+            Dist2(ii,jj) = 100;
+        end
     end
 end
 
 filtered_outmatches = matches;
 
+% find the nearst features of each one and remove duplicated ones.
 for ii = 1:Num_1
     [Minv,indexMin] = min(Dist1(ii,:));
     if(Minv<threshold_manytone)
