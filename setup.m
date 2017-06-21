@@ -1,7 +1,7 @@
 function setup(varargin)
 
 addpath(genpath('.'));
-addpath(genpath('../data/.'));
+% addpath(genpath('../data/.'));
 
 addpath('../external/matconvnet/matconvnet-1.0-beta12/matlab');
 addpath('../external/vlfeat/vlfeat-0.9.20new/toolbox/');

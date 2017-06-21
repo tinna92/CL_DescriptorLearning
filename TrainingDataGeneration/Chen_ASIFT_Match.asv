@@ -13,7 +13,6 @@ a = opts.a;
 b = opts.b;
 
 % do the viewsphere simulation and extract features
-disp('start to extract features from affine images')
 [frames_Aff1, descrs_Aff1, feature_index1, frames_insimulatedimage_index1] = Chen_ExtractedAffineimageFeatures2(img_name1,feature_detector_type,feature_descriptor_type,n,a,b);
 [frames_Aff2, descrs_Aff2, feature_index2, frames_insimulatedimage_index2] = Chen_ExtractedAffineimageFeatures2(img_name2,feature_detector_type,feature_descriptor_type,n,a,b);
 
@@ -57,8 +56,7 @@ end
 % match the affine image to affine images (not all of the extracted
 % features separately)
 % Num x Num form, where Num represents the number of affine image versions
-disp('start to match a series of affine images')
-match_ratio = 1.5;
+match_ratio = 1.7;
 count_out = 1;
 count_in = 1;
 match_num = 0;
@@ -109,7 +107,6 @@ end
 
 
 % analyze the repeatable features in each feature set by the function Chen_analyze_repeatable_features
-disp('analyze the repeatablity of features in affine simulated images')
 Re_index1 = Chen_analyze_repeatable_features(frames_Aff1, 32); %analyze how much of the features are repeatable features, this one actually tells you the repeatable features 
 Re_index2 = Chen_analyze_repeatable_features(frames_Aff2, 32);
 Re_Match_cp(1,:) = Re_index1(Match_corresp(1,:));
@@ -122,17 +119,15 @@ yyyy = yyyy';
 
 % find the inlinears of matchng points by RANSAC
 clear inlinear_index;
-disp('estimate the fundamental matrix using RANSAC')
 [F_matrix,inlinear_index] = Chen_estimateFundmentalmatrix_RANSAC(frames_Aff1,frames_Aff2,yyyy,2,30000);
-% Initial_MatchNum = size(Match_corresp,2);
+Initial_MatchNum = size(Match_corresp,2);
 clear img_coord1 img_coord2 correct_Match_coord1 correct_Match_coord2;
-img_coord1 = frames_Aff1(1:2,yyyy(1,:));
-img_coord2 = frames_Aff2(1:2,yyyy(2,:));
+img_coord1 = yyyy(1:2,Match_corresp(1,:));
+img_coord2 = yyyy(1:2,Match_corresp(2,:));
 correct_Match_coord1 = img_coord1(1:2,inlinear_index);
 correct_Match_coord2 = img_coord2(1:2,inlinear_index);
 
 % draw epipolar lines and show matching result.
-disp('output epipolar line and show matching result')
 draw_epipolar_lines(F_matrix,rgb2gray(imread(img_name1)),...
     rgb2gray(imread(img_name2)),correct_Match_coord1',correct_Match_coord2');
 Chen_show_matchresult(rgb2gray(imread(img_name1)),rgb2gray(imread(img_name2)), yyyy(1:2,inlinear_index),frames_Aff1,frames_Aff2,0);

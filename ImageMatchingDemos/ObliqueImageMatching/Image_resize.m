@@ -1,0 +1,5 @@
+Chen_imresize('E:\Image Matching\2016-07-07_IGI UrbanMapper\IGI UrbanMapper - Soest City - Sample Images\IGI-UM_Soest-City_GSD5cm-Nadir.jpg',0.125)
+Chen_imresize('E:\Image Matching\2016-07-07_IGI UrbanMapper\IGI UrbanMapper - Soest City - Sample Images\IGI-UM_Soest-City_GSD7cm-ObliqueEast.jpg',0.125)
+Chen_imresize('E:\Image Matching\2016-07-07_IGI UrbanMapper\IGI UrbanMapper - Soest City - Sample Images\IGI-UM_Soest-City_GSD7cm-ObliqueNorth.jpg',0.125)
+Chen_imresize('E:\Image Matching\2016-07-07_IGI UrbanMapper\IGI UrbanMapper - Soest City - Sample Images\IGI-UM_Soest-City_GSD7cm-ObliqueSouth.jpg',0.125)
+Chen_imresize('E:\Image Matching\2016-07-07_IGI UrbanMapper\IGI UrbanMapper - Soest City - Sample Images\IGI-UM_Soest-City_GSD7cm-ObliqueWest.jpg',0.125)
