@@ -10,8 +10,8 @@ function [out_match, out_features1, out_features2, out_desc1, out_desc2] = Chen_
 n = opts.n; 
 a = opts.a; 
 b = opts.b;
-[frames_Aff1,descrs_Aff1,feature_index1] = Chen_ExtractedAffineimageFeatures2(img_path1,'Hessian','SIFT',n,a,b);
-[frames_Aff2,descrs_Aff2,feature_index2] = Chen_ExtractedAffineimageFeatures2(img_path2,'Hessian','SIFT',n,a,b);
+[frames_Aff1,descrs_Aff1,feature_index1] = Chen_ExtractedAffineimageFeatures2(img_path1,opts.detector_type,opts.descriptor_type,n,a,b);
+[frames_Aff2,descrs_Aff2,feature_index2] = Chen_ExtractedAffineimageFeatures2(img_path2,opts.detector_type,opts.descriptor_type,n,a,b);
 
 match_ratio  = 1.5;
 [matches_Desc, scores_Desc] = vl_ubcmatch(descrs_Aff1, descrs_Aff2, match_ratio);
@@ -48,10 +48,10 @@ for qq = 1:size(filtered_outmatches, 2)
     nnnn(qq,2) = find(unrepeated_2 == filtered_outmatches(2,qq));
 end
 match_unrepeated = nnnn';
-frames_unrepeated_1 = frames_Aff1(1:3, unrepeated_1);
-frames_unrepeated_2 = frames_Aff2(1:3, unrepeated_2);
+frames_unrepeated_1 = frames_Aff1(:, unrepeated_1);
+frames_unrepeated_2 = frames_Aff2(:, unrepeated_2);
 descrs_unrepeated_1 = descrs_Aff1(:, unrepeated_1);
-descrs_unrepeated_2 = descrs_Aff1(:, unrepeated_2);
+descrs_unrepeated_2 = descrs_Aff2(:, unrepeated_2);
 % Chen_show_matchresult(rgb2gray(imread(img_path1)),...
 %     rgb2gray(imread(img_path2)), match_unrepeated,frames_unrepeated_1,frames_unrepeated_2,0);
 clear F_matrix inlinear_index img_coord1 img_coord2 correct_Match_coord1 correct_Match_coord2;

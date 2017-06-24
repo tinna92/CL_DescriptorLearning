@@ -1,6 +1,8 @@
 % remove the duplicate features in the 2 images by using the repeat table 
 % anylyze the features in frames_Aff1;Max_n_eachblock:maximum permissible
 %	number of "counted" points in the elementary block.
+% if two features lies inside a circle of radius 1, then it can only
+% preserve one
 function Re_index = Chen_analyze_repeatable_features(frames_Aff1,Max_n_eachblock)
 Num_1 = size(frames_Aff1,2);  
 Num_2 = size(frames_Aff1,2); 
@@ -20,7 +22,7 @@ for kk = 1:max(ind)
     if Num_overlapp>1 % if there are more than 1 points in the current grid , then it need to be check
         XX = pdist([X_frames(xx);Y_frames(xx)]');
         Dist = squareform(XX);
-        Dist_smallthan1 = Dist<1;
+        Dist_smallthan1 = Dist<1.0;
         for ii = 1:Num_overlapp
             for jj = 1:Num_overlapp
                 if Dist_smallthan1(ii,jj)==1

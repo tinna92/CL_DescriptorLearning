@@ -54,7 +54,7 @@ for ii=1:n
         % detect features in the current affined image
         if (strcmp(feature_detector_type,'fast12')~=1)&&(strcmp(feature_detector_type,'mser')~=1)
             current_affimg = im2single(current_affimg);
-            [frames, descrs] = vl_covdet(current_affimg, 'Method',feature_detector_type, 'descriptor', descriptor_type,'PatchResolution',31,'Doubleimage',false,'Verbose','EstimateAffineShape', true) ;
+            [frames, descrs] = vl_covdet(current_affimg, 'Method',feature_detector_type, 'descriptor', descriptor_type,'PatchResolution',31,'Doubleimage',false,'Verbose','EstimateAffineShape', false, 'EstimateOrientation', true) ;
         else
             if strcmp(feature_detector_type,'fast12')==1
                 c12a = fast12(current_affimg, 30,1);
@@ -74,7 +74,7 @@ for ii=1:n
         [xlim_final,ylim_final,x_scale, y_scale,outputRef] = Chen_Get_Map_FromWarpedImagetoAffinedImageCoord(size_img,tform.T);
         Num_currentFeatures = size(frames,2);  
         for kkk = 1:Num_currentFeatures
-            [frames_c(1,kkk) frames_c(2,kkk)]=outputRef.intrinsicToWorld(frames(1,kkk),frames(2,kkk));
+            [frames_c(1,kkk) frames_c(2,kkk)] = outputRef.intrinsicToWorld(frames(1,kkk),frames(2,kkk));
             [affine_frames(1,kkk) affine_frames(2,kkk)] = transformPointsInverse(tform,frames_c(1,kkk),frames_c(2,kkk));
         end
         clear frames_c;
