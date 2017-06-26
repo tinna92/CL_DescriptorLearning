@@ -54,7 +54,8 @@ for ii=1:n
         % detect features in the current affined image
         if (strcmp(feature_detector_type,'fast12')~=1)&&(strcmp(feature_detector_type,'mser')~=1)
             current_affimg = im2single(current_affimg);
-            [frames, descrs] = vl_covdet(current_affimg, 'Method',feature_detector_type, 'descriptor', descriptor_type,'PatchResolution',31,'Doubleimage',false,'Verbose','EstimateAffineShape', false, 'EstimateOrientation', true) ;
+            [frames, descrs] = vl_covdet(current_affimg, 'Method',feature_detector_type, 'descriptor', descriptor_type,'PatchResolution',31,'Doubleimage',false,...
+                'Verbose','EstimateAffineShape', false, 'EstimateOrientation', true, 'PeakThreshold',0.03) ;
         else
             if strcmp(feature_detector_type,'fast12')==1
                 c12a = fast12(current_affimg, 30,1);
